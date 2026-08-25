@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nexsync</title>
+
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <style>
+    :root {
+        --bg-start: #030508;
+        --bg-end: #0a0e17;
+        
+        --paper: #030508;
+        --card: rgba(6, 11, 22, 0.65);
+        --card-hover: rgba(10, 16, 32, 0.85);
+        
+        --ink: #f0fdf4;
+        --ink-body: #94a3b8;
+        --sub: #cbd5e1;
+        --faint: #475569;
+        
+        --rule: rgba(6, 182, 212, 0.15);
+        --rule-2: rgba(6, 182, 212, 0.07);
+        
+        --acc: #06b6d4;
+        --acc-strong: #0891b2;
+        --acc-ink: #030508;
+        --acc-dim: rgba(6, 182, 212, 0.15);
+        
+        --ok: #10b981;
+        --ok-bg: rgba(16, 185, 129, 0.12);
+        --bad: #ef4444;
+        --bad-dim: rgba(239, 68, 68, 0.12);
+
+        --font-display: 'Outfit', sans-serif;
+        --font-body: 'Plus Jakarta Sans', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+
+        --r-sm: 8px;
+        --r-md: 12px;
+        --r-lg: 18px;
+        --gutter: 24px;
+
+        --dur-micro: 0.15s;
+        --dur-short: 0.25s;
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { overflow-x: clip; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+    body {
+        margin: 0;
+        background: radial-gradient(circle at 50% -20%, #0c203b 0%, var(--bg-start) 60%, var(--bg-end) 100%);
+        color: var(--ink-body);
+        font-family: var(--font-body);
+        font-size: 14.5px; line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        background-attachment: fixed;
+        position: relative;
+    }
+
+    body::before {
+        content: "";
+        position: fixed; inset: 0; pointer-events: none; z-index: -2;
+        background-image: linear-gradient(to right, rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    .ambient-bg {
+        position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden;
+    }
+    .orb {
+        position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.25;
+        animation: floatOrb 18s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 450px; height: 450px; background: rgba(6, 182, 212, 0.15); top: -10%; left: 5%; }
+    .orb-2 { width: 500px; height: 500px; background: rgba(16, 185, 129, 0.1); bottom: -15%; right: 5%; animation-delay: -5s; }
+    @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(35px, 25px) scale(1.06); }
+        100% { transform: translate(-25px, 40px) scale(0.94); }
+    }
+
+    ::selection { background: var(--acc-dim); color: var(--ink); }
+    :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+    .hidden { display: none !important; }
+    .mono { font-family: var(--font-mono); }
+
+    .card { 
+        background: var(--card); 
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--rule); 
+        border-radius: var(--r-lg); 
+        box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(6, 182, 212, 0.1);
+    }
+
+    .reveal { opacity: 0; transform: translateY(12px);
+        animation: reveal .5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: calc(var(--i, 0) * 80ms); }
+    @keyframes reveal { to { opacity: 1; transform: none; } }
+
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        white-space: nowrap; cursor: pointer; text-decoration: none;
+        font: 600 13.5px/1 var(--font-body);
+        border-radius: var(--r-sm); padding: 12px 18px; border: none;
+        transition: all var(--dur-micro) var(--ease-out);
+        position: relative; overflow: hidden;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { 
+        background: linear-gradient(135deg, var(--acc), var(--acc-strong)); 
+        color: var(--acc-ink); 
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.35); 
+    }
+    .btn-primary:hover { filter: brightness(1.15); box-shadow: 0 0 30px rgba(6, 182, 212, 0.55); transform: translateY(-1px); }
+    .btn-block { width: 100%; margin-top: 4px; padding: 14px 18px; }
+    .btn-ghost { background: rgba(6, 182, 212, 0.03); color: var(--sub); border: 1px solid var(--rule); }
+    .btn-ghost:hover { color: var(--ink); border-color: var(--acc); background: rgba(6, 182, 212, 0.08); }
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+    .btn[disabled] { opacity: .55; cursor: default; transform: none !important; box-shadow: none !important; }
+
+    .fblock { display: grid; gap: 6px; min-width: 0; }
+    .flabel { font: 600 11px/1.4 var(--font-mono); letter-spacing: .08em;
+        text-transform: uppercase; color: var(--faint); }
+    .input {
+        width: 100%; background: rgba(3, 8, 18, 0.8);
+        border: 1px solid var(--rule); border-radius: var(--r-sm);
+        color: var(--ink); font: 400 14px/1.4 var(--font-body);
+        padding: 12px 14px;
+        transition: all var(--dur-short) var(--ease-out);
+    }
+    .input::placeholder { color: var(--faint); }
+    .input:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-dim); background: rgba(3, 8, 18, 0.95); }
+
+    .custom-select-wrapper {
+        position: relative;
+        user-select: none;
+    }
+    .custom-select-trigger {
+        width: 100%; background: rgba(3, 8, 18, 0.8);
+        border: 1px solid var(--rule); border-radius: var(--r-sm);
+        color: var(--ink); font: 400 14px/1.4 var(--font-body);
+        padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; transition: all var(--dur-short) var(--ease-out);
+    }
+    .custom-select-trigger:hover { border-color: rgba(6, 182, 212, 0.4); background: rgba(3, 8, 18, 0.95); }
+    .custom-select-trigger i { transition: transform 0.2s ease; color: var(--sub); }
+    .custom-select-wrapper.open .custom-select-trigger { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-dim); }
+    .custom-select-wrapper.open .custom-select-trigger i { transform: rotate(180deg); color: var(--acc); }
+
+    .custom-options {
+        position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+        background: #050a14; border: 1px solid var(--rule); border-radius: var(--r-sm);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8); z-index: 50;
+        opacity: 0; visibility: hidden; transform: translateY(-8px);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        max-height: 240px; overflow-y: auto; scrollbar-width: thin;
+    }
+    .custom-select-wrapper.open .custom-options {
+        opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .custom-option {
+        padding: 11px 14px; font-size: 13.5px; color: var(--ink-body); cursor: pointer;
+        border-bottom: 1px solid var(--rule-2); transition: background var(--dur-micro), color var(--dur-micro);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .custom-option:last-child { border-bottom: none; }
+    .custom-option:hover { background: rgba(6, 182, 212, 0.08); color: var(--ink); }
+    .custom-option.selected { background: rgba(6, 182, 212, 0.15); color: var(--ink); font-weight: 600; }
+    .custom-option-sub { font-size: 11.5px; color: var(--faint); font-family: var(--font-mono); }
+
+    .form-error { display: flex; align-items: flex-start; gap: 7px; margin: 4px 0 0;
+        font-size: 12.5px; color: #f87171; background: var(--bad-dim);
+        border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--r-sm); padding: 10px 12px; }
+
+    #bk-nama, #bk-kelas, #edit-nama, #edit-kelas { text-transform: uppercase; }
+
+    #view-login {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px var(--gutter);
+    }
+    .login-container {
+        width: 100%;
+        max-width: 400px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .login-brand-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+        font: 700 20px/1 var(--font-display);
+        letter-spacing: -.02em;
+        color: var(--ink);
+    }
+    .login-box {
+        width: 100%;
+        padding: 38px 30px 30px;
+    }
+    .login-title { margin: 0 0 6px; font: 700 24px/1.15 var(--font-display);
+        letter-spacing: -.02em; color: var(--ink); }
+    .login-sub { margin: 0 0 24px; font-size: 13.5px; color: var(--ink-body); }
+
+    .hint { margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--rule-2);
+        font-size: 12.5px; color: var(--ink-body); line-height: 1.7; }
+    .hint b { color: var(--sub); font-weight: 600; }
+
+    .nav-wrapper {
+        position: sticky; top: 16px; z-index: 50;
+        max-width: 1080px; margin: 16px auto 0; padding-inline: var(--gutter);
+    }
+    nav.top {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 10px 20px;
+        background: rgba(3, 8, 18, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--rule);
+        border-radius: var(--r-lg);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(6, 182, 212, 0.1);
+    }
+    .brand { display: inline-flex; align-items: center; gap: 10px;
+        font: 700 17px/1 var(--font-display); letter-spacing: -.01em; color: var(--ink); }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px;
+        background: var(--acc); color: var(--acc-ink);
+        display: grid; place-items: center; font-size: 15px; flex-shrink: 0; 
+        box-shadow: 0 0 12px rgba(6, 182, 212, 0.5); }
+    .who { font-size: 13px; color: var(--ink-body); white-space: nowrap; }
+    .who b { color: var(--ink); font-weight: 600; }
+    .bar-right { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    @media (max-width: 640px) { 
+        .nav-wrapper { margin-top: 10px; padding-inline: 12px; }
+        .who { display: none; } 
+    }
+
+    .page { max-width: 1080px; margin-inline: auto; padding: 28px var(--gutter) 64px; }
+    .h-page { display: flex; justify-content: space-between; align-items: flex-end;
+        gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+    h2.pt { margin: 0; font: 700 24px/1.15 var(--font-display);
+        letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
+        text-transform: uppercase; }
+    .sub { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-body); }
+    .date-chip { display: inline-flex; align-items: center; gap: 8px;
+        font: 500 12px/1.4 var(--font-mono); color: var(--sub);
+        background: rgba(6, 182, 212, 0.03); border: 1px solid var(--rule);
+        border-radius: var(--r-sm); padding: 9px 14px; backdrop-filter: blur(8px); }
+    .date-chip i { color: var(--acc); font-style: normal; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stat { padding: 24px 26px; min-width: 0; position: relative; }
+    .stat + .stat { border-left: 1px solid var(--rule-2); }
+    .stat-label { margin: 0 0 8px; font: 600 11px/1.4 var(--font-mono);
+        letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .stat-num { margin: 0; font: 700 34px/1 var(--font-display);
+        letter-spacing: -.02em; color: var(--ink);
+        font-variant-numeric: tabular-nums; }
+    .stat-num.ok { color: var(--ok); } .stat-num.acc { color: var(--acc); }
+    @media (max-width: 700px) {
+        .stats { grid-template-columns: minmax(0, 1fr); }
+        .stat + .stat { border-left: none; border-top: 1px solid var(--rule-2); }
+    }
+
+    .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 370px);
+        gap: 20px; align-items: start; margin-top: 20px; }
+    @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+    .panel { padding: 26px; }
+    .panel-title { margin: 0 0 4px; font: 700 16px/1.3 var(--font-display); color: var(--ink); }
+    .panel-sub { margin: 0 0 20px; font-size: 12.5px; color: var(--ink-body); }
+
+    .scan-line { display: flex; align-items: center; gap: 10px; font-size: 12.5px;
+        color: var(--ink-body); background: rgba(3, 8, 18, 0.5); border: 1px solid var(--rule);
+        border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 18px; }
+    .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); flex-shrink: 0; }
+    .sdot-live { background: var(--acc); animation: pulse 1.8s ease-in-out infinite; }
+    .sdot-hit { background: var(--ok); }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 rgba(6, 182, 212, 0.5); } 50% { opacity: .5; transform: scale(1.25); box-shadow: 0 0 8px var(--acc); } }
+    .scan-line strong { color: var(--ink); font-family: var(--font-mono); font-weight: 600; }
+    .flash-on { border-color: var(--acc) !important; box-shadow: 0 0 0 3px var(--acc-dim) !important; }
+
+    table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+    .tbl th { text-align: left; font: 600 11px/1.4 var(--font-mono);
+        letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+        padding: 15px 20px; border-bottom: 1px solid var(--rule); background: rgba(3, 8, 18, 0.6); }
+    .tbl td { padding: 15px 20px; border-bottom: 1px solid var(--rule-2); color: var(--ink-body); }
+    .tbl tbody tr:last-child td { border-bottom: none; }
+    .tbl tbody tr { transition: background var(--dur-micro) var(--ease-out); }
+    .tbl tbody tr:hover { background: rgba(6, 182, 212, 0.03); }
+    .stu { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .ava { width: 38px; height: 38px; border-radius: var(--r-md); display: grid;
+        place-items: center; background: var(--acc-dim); color: var(--acc);
+        font-weight: 700; font-size: 14px; flex-shrink: 0; border: 1px solid rgba(6, 182, 212, 0.3); }
+    
+    .stu-name { font-weight: 600; color: var(--ink); line-height: 1.3;
+        overflow-wrap: anywhere; text-transform: uppercase; }
+    .kelas-cell { text-transform: uppercase; color: var(--ink-body); }
+
+    .jam-cell { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-body); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+        font-weight: 600; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+    .pill-in { background: var(--ok-bg); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .pill-out { background: rgba(255, 255, 255, 0.03); color: var(--faint); border: 1px solid var(--rule); }
+
+    .empty-box { padding: 60px 22px; text-align: center; color: var(--ink-body); }
+    .empty-box i { font-size: 32px; color: var(--faint); display: block; margin-bottom: 12px; }
+    .empty-box p { margin: 0; font-size: 13.5px; }
+
+    .tbl-head { display: flex; justify-content: space-between; align-items: center;
+        gap: 10px; padding: 18px 22px; border-bottom: 1px solid var(--rule-2); flex-wrap: wrap; }
+    .tbl-title { margin: 0; font: 700 16px/1.3 var(--font-display); color: var(--ink); }
+
+    #view-ortu { max-width: 1000px; margin-inline: auto; padding: 36px var(--gutter) 64px; }
+    .ot-kicker { margin: 0 0 6px; font: 600 11px/1.4 var(--font-mono);
+        letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .s-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .s-kelas { font-size: 12.5px; font-weight: 600; color: var(--ink-body);
+        background: rgba(6, 182, 212, 0.04); border: 1px solid var(--rule); border-radius: 999px; padding: 5px 14px; text-transform: uppercase; }
+    .s-nis { font: 600 11.5px/1.4 var(--font-mono); color: var(--faint); }
+
+    #ortu-nama { text-transform: uppercase; }
+
+    .ot-status { display: flex; align-items: center; gap: 20px;
+        padding: 26px 28px; flex-wrap: wrap; }
+    .st-icon { width: 68px; height: 68px; border-radius: 50%;
+        display: grid; place-items: center; font-size: 30px; flex-shrink: 0; }
+    .ot-status .st-icon { margin: 0; }
+    .st-icon.in { background: var(--ok-bg); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .st-icon.out { background: rgba(255, 255, 255, 0.03); color: var(--faint); border: 1px solid var(--rule); }
+    .st-icon.wait i { animation: pulse 1.2s ease-in-out infinite; }
+    .ot-status-text { flex: 1; min-width: 200px; }
+    .st-title { margin: 0 0 4px; font: 700 22px/1.2 var(--font-display);
+        letter-spacing: -.02em; color: var(--ink); }
+    .st-title.ok { color: #34d399; }
+    .st-sub { margin: 0; font-size: 13.5px; color: var(--ink-body); }
+    .ot-status-time { text-align: right; margin-left: auto; }
+    .ot-status-time b { display: block; font: 700 30px/1.1 var(--font-display);
+        letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .ot-status-time span { font: 600 10.5px/1.8 var(--font-mono);
+        letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    @media (max-width: 560px) {
+        .ot-status-time { width: 100%; text-align: left; margin-left: 88px; }
+    }
+
+    .ot-stats { margin-top: 16px; }
+
+    .ot-cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: 20px; align-items: start; margin-top: 20px; }
+    .ot-cols .rw-card { margin-top: 0; }
+    @media (max-width: 900px) {
+        .ot-cols { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .rw-card { margin-top: 16px; overflow: hidden; }
+    .rw-head { padding: 18px 24px; border-bottom: 1px solid var(--rule-2);
+        display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .rw-title { margin: 0; font: 700 16px/1.3 var(--font-display); color: var(--ink); }
+    .rw-summary { font-size: 12.5px; color: var(--ink-body); }
+    .rw-summary b { color: var(--ink); font-weight: 600; }
+    .rw-row { display: flex; align-items: center; gap: 12px; padding: 14px 24px;
+        border-bottom: 1px solid var(--rule-2); transition: background var(--dur-micro) var(--ease-out); }
+    .rw-row:hover { background: rgba(6, 182, 212, 0.03); }
+    .rw-row:last-child { border-bottom: none; }
+    .rw-day { min-width: 0; flex: 1; }
+    .rw-day b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+    .rw-day span { font-size: 12px; color: var(--faint); }
+    .rw-jam { font: 500 13px/1 var(--font-mono); color: var(--ink-body);
+        font-variant-numeric: tabular-nums; }
+    .rw-badge { font-size: 11.5px; font-weight: 600; padding: 4px 10px;
+        border-radius: 999px; white-space: nowrap; }
+    .rw-badge.in { background: var(--ok-bg); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .rw-badge.out { background: rgba(255, 255, 255, 0.03); color: var(--faint); border: 1px solid var(--rule); }
+
+    .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(3, 5, 8, 0.8); backdrop-filter: blur(8px);
+        display: grid; place-items: center; z-index: 100; padding: 20px;
+    }
+    .modal-card { width: 100%; max-width: 440px; padding: 28px; }
+
+    footer.ft { max-width: 1080px; margin-inline: auto;
+        padding: 12px var(--gutter) 40px; text-align: center;
+        font: 500 11px/1.6 var(--font-mono); letter-spacing: .05em; color: var(--faint); }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .15s !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .15s !important; }
+        .reveal { opacity: 1; transform: none; animation: none; }
+        .orb { animation: none; }
+    }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <!-- ============ 1 · LOGIN ============ -->
+    <div id="view-login">
+        <div class="login-container">
+            <div class="login-brand-header reveal" style="--i:0">
+                <span class="brand-mark"><i class="ri-rfid-line"></i></span>nexsync
+            </div>
+            <div class="card login-box reveal" style="--i:1">
+                <h1 class="login-title">Portal Absensi</h1>
+                <p class="login-sub">Masuk menggunakan Nomor Induk Siswa (NIS)</p>
+
+                <form id="form-login" style="display:grid; gap:16px" novalidate>
+                    <div class="fblock">
+                        <label class="flabel" for="nis">Nomor Induk Siswa</label>
+                        <input type="text" id="nis" required autofocus autocomplete="off"
+                            class="input mono" placeholder="Masukkan NIS Anda">
+                    </div>
+                    <p id="login-error" class="form-error hidden" role="alert"></p>
+                    <button type="submit" id="btn-login" class="btn btn-primary btn-block">Masuk Portal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ APP BAR ============ -->
+    <div class="nav-wrapper hidden" id="app-navbar">
+        <nav class="top">
+            <span class="brand"><span class="brand-mark"><i class="ri-rfid-line"></i></span>nexsync</span>
+            <div class="bar-right">
+               <b id="user-display"></b>
+                <button id="btn-logout" class="btn btn-ghost" style="padding: 8px 14px; font-size: 12.5px;">Keluar</button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ============ 2 · ADMIN IT ============ -->
+    <div id="view-admin" class="hidden page">
+        <div class="h-page reveal" style="--i:0">
+            <div style="min-width:0">
+                <h2 class="pt">Rekap Kehadiran</h2>
+                <p class="sub">Data kehadiran siswa diperbarui secara otomatis secara real-time</p>
+            </div>
+            <span class="date-chip"><i class="ri-calendar-line"></i><span id="admin-date">&nbsp;</span></span>
+        </div>
+
+        <div class="card stats reveal" style="--i:1">
+            <div class="stat">
+                <p class="stat-label">Total Siswa</p>
+                <p class="stat-num" id="stat-total">0</p>
+            </div>
+            <div class="stat">
+                <p class="stat-label">Hadir Hari Ini</p>
+                <p class="stat-num ok" id="stat-hadir">0</p>
+            </div>
+            <div class="stat">
+                <p class="stat-label">Persentase Kehadiran</p>
+                <p class="stat-num acc" id="stat-persentase">0%</p>
+            </div>
+        </div>
+
+        <div class="cols">
+            <section class="card reveal" style="--i:2">
+                <div id="table-block">
+                    <div class="tbl-head">
+                        <h3 class="tbl-title">Kehadiran Hari Ini</h3>
+                        <button id="btn-export" class="btn btn-ghost" style="padding:8px 14px; font-size:12.5px"><i class="ri-download-2-line"></i> Ekspor Excel</button>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="tbl" id="main-table">
+                            <thead>
+                                <tr><th>Siswa</th><th>Kelas</th><th>Jam Hadir</th><th style="text-align:right">Status</th></tr>
+                            </thead>
+                            <tbody id="table-admin-data"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="empty-state" class="hidden empty-box">
+                    <i class="ri-inbox-line"></i>
+                    <p>Belum ada siswa terdaftar.</p>
+                </div>
+            </section>
+
+            <!-- Panel Kaitkan Kartu dengan Custom Modern Dropdown -->
+            <section class="card panel reveal" style="--i:3">
+                <h3 class="panel-title">Kaitkan Kartu RFID</h3>
+                <p class="panel-sub">Pilih siswa dari data BK, lalu tempel kartu untuk menghubungkannya.</p>
+
+                <p class="scan-line" id="scan-status">
+                    <span class="sdot" id="scan-status-icon"></span>
+                    <span id="scan-status-text">Menunggu kartu ditempelkan...</span>
+                </p>
+
+                <form id="form-siswa" style="display:grid; gap:14px">
+                    <div class="fblock">
+                        <label class="flabel">Pilih Siswa (Data BK)</label>
+                        <div class="custom-select-wrapper" id="custom-select">
+                            <div class="custom-select-trigger" id="custom-select-trigger">
+                                <span id="custom-select-label" style="color: var(--faint);">-- Pilih Siswa dari Data BK --</span>
+                                <i class="ri-arrow-down-s-line"></i>
+                            </div>
+                            <div class="custom-options" id="custom-options-container"></div>
+                        </div>
+                        <input type="hidden" id="select-siswa-bk" required>
+                    </div>
+
+                    <div class="fblock">
+                        <label class="flabel" for="uid">Nomor Kartu (UID)</label>
+                        <input type="text" id="uid" required class="input mono" placeholder="Tempelkan kartu ke alat" style="text-transform:uppercase">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Simpan & Kaitkan Kartu</button>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <!-- ============ 2B · ADMIN BK ============ -->
+    <div id="view-bk" class="hidden page">
+        <div class="h-page reveal" style="--i:0">
+            <div style="min-width:0">
+                <h2 class="pt">Manajemen Data Siswa </h2>
+                <p class="sub">Kelola data siswa: Tambah, Edit, dan Hapus data siswa sekolah</p>
+            </div>
+            <span class="date-chip"><i class="ri-calendar-line"></i><span id="bk-date">&nbsp;</span></span>
+        </div>
+
+        <div class="cols">
+            <section class="card reveal" style="--i:1">
+                <div class="tbl-head">
+                    <h3 class="tbl-title">Daftar Seluruh Siswa</h3>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tbl">
+                        <thead>
+                            <tr><th>Siswa</th><th>Kelas</th><th>NIS</th><th style="text-align:right">Aksi</th></tr>
+                        </thead>
+                        <tbody id="table-bk-data"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card panel reveal" style="--i:2">
+                <h3 class="panel-title">Tambah Siswa Baru</h3>
+                <p class="panel-sub">Daftarkan data siswa tanpa perlu nomor kartu RFID.</p>
+
+                <form id="form-bk-tambah" style="display:grid; gap:14px">
+                    <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px">
+                        <div class="fblock">
+                            <label class="flabel" for="bk-nis">NIS</label>
+                            <input type="number" id="bk-nis" required class="input mono" placeholder="123456">
+                        </div>
+                        <div class="fblock">
+                            <label class="flabel" for="bk-kelas">Kelas</label>
+                            <input type="text" id="bk-kelas" required class="input" placeholder="XII RPL 1">
+                        </div>
+                    </div>
+                    <div class="fblock">
+                        <label class="flabel" for="bk-nama">Nama Lengkap</label>
+                        <input type="text" id="bk-nama" required class="input" placeholder="Nama lengkap siswa">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Tambah Siswa</button>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal Edit Siswa -->
+    <div id="modal-edit" class="modal-backdrop hidden">
+        <div class="card modal-card">
+            <h3 class="panel-title" style="margin-bottom: 4px;">Edit Data Siswa</h3>
+            <p class="panel-sub">Perbarui informasi siswa di bawah ini.</p>
+            <form id="form-bk-edit" style="display:grid; gap:14px">
+                <input type="hidden" id="edit-old-id">
+                <input type="hidden" id="edit-old-nis">
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px">
+                    <div class="fblock">
+                        <label class="flabel" for="edit-nis">NIS</label>
+                        <input type="number" id="edit-nis" required class="input mono">
+                    </div>
+                    <div class="fblock">
+                        <label class="flabel" for="edit-kelas">Kelas</label>
+                        <input type="text" id="edit-kelas" required class="input">
+                    </div>
+                </div>
+                <div class="fblock">
+                    <label class="flabel" for="edit-nama">Nama Lengkap</label>
+                    <input type="text" id="edit-nama" required class="input">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 6px;">
+                    <button type="button" id="btn-cancel-edit" class="btn btn-ghost" style="flex: 1;">Batal</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============ 3 · PORTAL ORANG TUA ============ -->
+    <div id="view-ortu" class="hidden">
+        <div class="h-page reveal" style="--i:0">
+            <div style="min-width:0">
+                <p class="ot-kicker">Portal Orang Tua / Wali Murid</p>
+                <h2 class="pt" id="ortu-nama">&ndash;</h2>
+                <div class="s-meta">
+                    <span class="s-kelas" id="ortu-kelas">-</span>
+                    <span class="s-nis" id="ortu-nis">-</span>
+                </div>
+            </div>
+            <span class="date-chip"><i class="ri-calendar-line"></i><span id="ortu-tanggal-wrap">&nbsp;</span></span>
+        </div>
+
+        <div class="ot-cols">
+            <div class="ot-left">
+                <div class="card ot-status reveal" style="--i:1">
+                    <div id="ortu-ikon"><div class="st-icon wait"><i class="ri-loader-4-line"></i></div></div>
+                    <div class="ot-status-text">
+                        <h3 class="st-title" id="ortu-status-teks">Memuat data...</h3>
+                        <p class="st-sub" id="ortu-status-sub">Mohon tunggu sebentar.</p>
+                    </div>
+                    <div class="ot-status-time" id="ortu-waktu"><b>&ndash;</b><span>Menunggu</span></div>
+                </div>
+
+                <div class="card stats ot-stats reveal" style="--i:2">
+                    <div class="stat">
+                        <p class="stat-label">Jam Masuk Hari Ini</p>
+                        <p class="stat-num" id="ortu-jam">&ndash;</p>
+                    </div>
+                    <div class="stat">
+                        <p class="stat-label">Kehadiran 7 Hari</p>
+                        <p class="stat-num ok" id="ortu-hadir7">0/7</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card rw-card reveal" style="--i:3">
+                <div class="rw-head">
+                    <h3 class="rw-title">Riwayat 7 Hari Terakhir</h3>
+                    <span class="rw-summary" id="riwayat-summary">&nbsp;</span>
+                </div>
+                <div id="tabel-riwayat"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="ft hidden" id="app-footer">
+        nexsync 
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const fbApp = initializeApp({
+            apiKey: "AIzaSyCjYCYmlJ-brGGg9BivTZvkOqgSrQVFiYo",
+            authDomain: "absensi-b957f.firebaseapp.com",
+            databaseURL: "https://absensi-b957f-default-rtdb.firebaseio.com",
+            projectId: "absensi-b957f"
+        });
+        const rtdb = getDatabase(fbApp);
+
+        const viewLogin = document.getElementById('view-login');
+        const viewAdmin = document.getElementById('view-admin');
+        const viewBk    = document.getElementById('view-bk');
+        const viewOrtu  = document.getElementById('view-ortu');
+        const appNavbar = document.getElementById('app-navbar');
+        const appFooter = document.getElementById('app-footer');
+
+        let currentUserRole = null;
+        let currentUid      = null;
+        let currentNama     = '';
+        let studentsCache   = [];
+        let absensiCache    = {};
+        let pendingCache    = {};
+        let lastScanShown   = null;
+        let unsubs          = [];
+
+        function todayLocal() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function tapHariIni(uid) {
+            return (absensiCache[todayLocal()] || {})[uid] || null;
+        }
+
+        function startRealtime() {
+            if (unsubs.length) return;
+
+            unsubs.push(onValue(ref(rtdb, 'siswa'), (snap) => {
+                const val = snap.val() || {};
+                studentsCache = Object.entries(val)
+                    .map(([id, s]) => ({ id, ...s }))
+                    .sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id'));
+                if (currentUserRole === 'admin') {
+                    renderAdminTable();
+                    populateAdminDropdown();
+                }
+                if (currentUserRole === 'bk') {
+                    renderBkTable();
+                }
+            }));
+
+            unsubs.push(onValue(ref(rtdb, 'absensi'), (snap) => {
+                absensiCache = snap.val() || {};
+                if (currentUserRole === 'admin') renderAdminTable();
+                if (currentUserRole === 'ortu')  renderOrtuAttendance();
+            }));
+
+            unsubs.push(onValue(ref(rtdb, 'pending'), (snap) => {
+                pendingCache = snap.val() || {};
+                handlePendingScan();
+            }));
+        }
+
+        function stopRealtime() {
+            unsubs.forEach(u => u());
+            unsubs = [];
+        }
+
+        function handlePendingScan() {
+            if (currentUserRole !== 'admin') return;
+
+            let bestUid = null, bestTs = -1;
+            for (const [uid, v] of Object.entries(pendingCache)) {
+                const ts = typeof v === 'number' ? v : Number(v?.ts || 0);
+                if (ts > bestTs) { bestTs = ts; bestUid = uid; }
+            }
+
+            if (!bestUid) {
+                setScanStatus('idle');
+                return;
+            }
+            if (bestUid === lastScanShown) return;
+            lastScanShown = bestUid;
+
+            const waktu = bestTs > 0
+                ? new Date(bestTs < 1e12 ? bestTs * 1000 : bestTs).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                : '';
+
+            const uidInput = document.getElementById('uid');
+            uidInput.value = bestUid;
+            uidInput.classList.add('flash-on');
+            setTimeout(() => uidInput.classList.remove('flash-on'), 1500);
+
+            setScanStatus('detected', bestUid, waktu);
+        }
+
+        function setScanStatus(mode, uid = null, waktu = null) {
+            const icon = document.getElementById('scan-status-icon');
+            const text = document.getElementById('scan-status-text');
+
+            if (mode === 'detected') {
+                icon.className = 'sdot sdot-hit';
+                text.innerHTML = `Kartu terdeteksi: <strong>${uid}</strong>${waktu ? ' pukul ' + waktu : ''}. Pilih siswa lalu simpan.`;
+            } else if (mode === 'waiting') {
+                icon.className = 'sdot sdot-live';
+                text.textContent = 'Membaca kartu...';
+            } else {
+                icon.className = 'sdot';
+                text.textContent = 'Menunggu kartu ditempelkan...';
+            }
+        }
+
+        const customSelectWrapper = document.getElementById('custom-select');
+        const customSelectTrigger = document.getElementById('custom-select-trigger');
+        const customOptionsContainer = document.getElementById('custom-options-container');
+        const customSelectLabel = document.getElementById('custom-select-label');
+        const hiddenInputSiswa = document.getElementById('select-siswa-bk');
+
+        customSelectTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            customSelectWrapper.classList.toggle('open');
+        });
+
+        window.addEventListener('click', () => {
+            customSelectWrapper.classList.remove('open');
+        });
+
+        function populateAdminDropdown() {
+            customOptionsContainer.innerHTML = '';
+            
+            if (studentsCache.length === 0) {
+                customOptionsContainer.innerHTML = `<div class="custom-option" style="color: var(--faint); cursor: default;">Belum ada data siswa di BK</div>`;
+                return;
+            }
+
+            studentsCache.forEach(m => {
+                const opt = document.createElement('div');
+                opt.className = 'custom-option';
+                if (hiddenInputSiswa.value === m.id) opt.classList.add('selected');
+
+                opt.innerHTML = `
+                    <span>${m.nama}</span>
+                    <span class="custom-option-sub">${m.kelas} · NIS ${m.nis} ${m.uid ? '✓' : ''}</span>
+                `;
+
+                opt.addEventListener('click', () => {
+                    hiddenInputSiswa.value = m.id;
+                    customSelectLabel.textContent = `${m.nama} (${m.kelas} - NIS ${m.nis})`;
+                    customSelectLabel.style.color = 'var(--ink)';
+                    customSelectWrapper.classList.remove('open');
+                    
+                    document.querySelectorAll('.custom-option').forEach(el => el.classList.remove('selected'));
+                    opt.classList.add('selected');
+                });
+
+                customOptionsContainer.appendChild(opt);
+            });
+        }
+
+        function switchView(targetView, isLogout = false) {
+            viewLogin.classList.add('hidden');
+            viewAdmin.classList.add('hidden');
+            viewBk.classList.add('hidden');
+            viewOrtu.classList.add('hidden');
+            targetView.classList.remove('hidden');
+            appNavbar.classList.toggle('hidden', !!isLogout);
+            appFooter.classList.toggle('hidden', !!isLogout);
+        }
+
+        function bootClock() {
+            const tick = () => {
+                const now = new Date().toLocaleDateString('id-ID',
+                    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                document.getElementById('admin-date').innerText = now;
+                document.getElementById('bk-date').innerText = now;
+                document.getElementById('ortu-tanggal-wrap').innerHTML =
+                    new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            };
+            tick();
+            clearInterval(window.__clockTimer);
+            window.__clockTimer = setInterval(tick, 30000);
+        }
+
+        function animateNum(el, target, suffix = '') {
+            const start = parseInt(el.dataset.v || '0', 10);
+            el.dataset.v = String(target);
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches || start === target) {
+                el.textContent = target + suffix;
+                return;
+            }
+            const t0 = performance.now(), dur = 500;
+            (function tickFrame(t) {
+                const p = Math.min(((t || t0) - t0) / dur, 1);
+                el.textContent = Math.round(start + (target - start) * (1 - Math.pow(1 - p, 3))) + suffix;
+                if (p < 1) requestAnimationFrame(tickFrame);
+            })(t0);
+        }
+
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nisVal = document.getElementById('nis').value.trim();
+            const errEl  = document.getElementById('login-error');
+            const btnLogin = document.getElementById('btn-login');
+
+            errEl.classList.add('hidden');
+            if (!nisVal) {
+                errEl.textContent = 'Nomor Induk Siswa (NIS) wajib diisi.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Memeriksa...';
+
+            try {
+                if (nisVal.toLowerCase() === 'admin') {
+                    currentUserRole = 'admin';
+                    document.getElementById('user-display').innerText = 'IT Administrator';
+                    switchView(viewAdmin);
+                    startRealtime();
+                    bootClock();
+                    setScanStatus('idle');
+                } else if (nisVal.toLowerCase() === 'bk') {
+                    currentUserRole = 'bk';
+                    document.getElementById('user-display').innerText = 'Admin BK';
+                    switchView(viewBk);
+                    startRealtime();
+                    bootClock();
+                    renderBkTable();
+                } else {
+                    const idxSnap = await get(ref(rtdb, `index_nis/${nisVal}`));
+                    if (!idxSnap.exists()) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'NIS Tidak Ditemukan',
+                            text: 'Periksa kembali nomor induk siswa yang dimasukkan.',
+                            background: '#0a0e17',
+                            color: '#f0fdf4',
+                            confirmButtonColor: '#06b6d4'
+                        });
+                        throw new Error('NIS tidak ditemukan.');
+                    }
+
+                    const sid    = idxSnap.val();
+                    const siswaSnap = await get(ref(rtdb, `siswa/${sid}`));
+                    if (!siswaSnap.exists()) throw new Error('Data siswa belum lengkap. Hubungi admin sekolah.');
+
+                    const d = siswaSnap.val();
+                    currentUserRole = 'ortu';
+                    currentUid  = sid;
+                    currentNama = String(d.nama || '').toUpperCase();
+
+                    document.getElementById('user-display').innerText = 'Wali Murid';
+                    document.getElementById('ortu-nama').innerText  = currentNama;
+                    document.getElementById('ortu-kelas').innerText = String(d.kelas || '-').toUpperCase();
+                    document.getElementById('ortu-nis').innerText   = `NIS ${d.nis}`;
+                    switchView(viewOrtu);
+                    startRealtime();
+                    bootClock();
+                    renderOrtuAttendance();
+                }
+            } catch (err) {
+                if (!err.message.includes('NIS tidak ditemukan')) {
+                    errEl.textContent = err.message || 'Tidak dapat terhubung. Periksa koneksi internet Anda.';
+                    errEl.classList.remove('hidden');
+                }
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Masuk Portal';
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            stopRealtime();
+            clearInterval(window.__clockTimer);
+            currentUserRole = null;
+            currentUid = null;
+            currentNama = '';
+            studentsCache = [];
+            absensiCache = {};
+            pendingCache = {};
+            lastScanShown = null;
+            document.getElementById('form-login').reset();
+            document.getElementById('login-error').classList.add('hidden');
+            switchView(viewLogin, true);
+        });
+
+        function renderAdminTable() {
+            const tbody      = document.getElementById('table-admin-data');
+            const emptyState = document.getElementById('empty-state');
+
+            tbody.innerHTML = '';
+            let hadirCount = 0;
+            const totalSiswa = studentsCache.length;
+
+            emptyState.classList.toggle('hidden', totalSiswa > 0);
+            document.getElementById('table-block').classList.toggle('hidden', totalSiswa === 0);
+
+            studentsCache.forEach(m => {
+                const tap = tapHariIni(m.id);
+                const jamHadir = tap ? String(tap.jam || '').slice(0, 5) : null;
+                if (jamHadir) hadirCount++;
+
+                const namaUpper = String(m.nama || '').toUpperCase();
+                const kelasUpper = String(m.kelas || '-').toUpperCase();
+                const initial = namaUpper.trim().charAt(0) || '?';
+                const pill = jamHadir
+                    ? `<span class="pill pill-in">Hadir</span>`
+                    : `<span class="pill pill-out">Belum</span>`;
+
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>
+                            <div class="stu">
+                                <span class="ava">${initial}</span>
+                                <div>
+                                    <div class="stu-name">${namaUpper}</div>
+                                    <div class="mono" style="font-size:11px; color:var(--faint)">NIS ${m.nis}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="kelas-cell">${kelasUpper}</td>
+                        <td class="jam-cell">${jamHadir || '&ndash;'}</td>
+                        <td style="text-align:right" data-export="${jamHadir ? 'Hadir (' + jamHadir + ')' : 'Belum Hadir'}">${pill}</td>
+                    </tr>
+                `);
+            });
+
+            animateNum(document.getElementById('stat-total'), totalSiswa);
+            animateNum(document.getElementById('stat-hadir'), hadirCount);
+            animateNum(
+                document.getElementById('stat-persentase'),
+                totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 0,
+                '%'
+            );
+        }
+
+        function renderBkTable() {
+            const tbody = document.getElementById('table-bk-data');
+            tbody.innerHTML = '';
+
+            if (studentsCache.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--faint); padding: 30px;">Belum ada data siswa terdaftar.</td></tr>`;
+                return;
+            }
+
+            studentsCache.forEach(m => {
+                const namaUpper = String(m.nama || '').toUpperCase();
+                const kelasUpper = String(m.kelas || '-').toUpperCase();
+                const initial = namaUpper.trim().charAt(0) || '?';
+
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>
+                            <div class="stu">
+                                <span class="ava">${initial}</span>
+                                <div>
+                                    <div class="stu-name">${namaUpper}</div>
+                                    <div class="mono" style="font-size:11px; color:var(--faint)">Kartu: ${m.uid ? m.uid : 'Belum dikaitkan'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="kelas-cell">${kelasUpper}</td>
+                        <td class="mono" style="color:var(--sub);">${m.nis}</td>
+                        <td style="text-align:right">
+                            <div style="display: inline-flex; gap: 8px;">
+                                <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" onclick="window.editSiswa('${m.id}', '${m.nis}', '${m.nama}', '${m.kelas}')"><i class="ri-edit-line"></i> Edit</button>
+                                <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="window.hapusSiswa('${m.id}', '${m.nis}')"><i class="ri-delete-bin-line"></i> Hapus</button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        document.getElementById('form-bk-tambah').onsubmit = async (e) => {
+            e.preventDefault();
+            const nisVal   = document.getElementById('bk-nis').value.trim();
+            const namaVal  = document.getElementById('bk-nama').value.trim().toUpperCase();
+            const kelasVal = document.getElementById('bk-kelas').value.trim().toUpperCase();
+
+            if (!nisVal || !namaVal || !kelasVal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Form Belum Lengkap',
+                    text: 'Semua kolom wajib diisi.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+                return;
+            }
+
+            try {
+                const existing = await get(ref(rtdb, `index_nis/${nisVal}`));
+                if (existing.exists()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'NIS Sudah Terdaftar',
+                        text: `NIS ${nisVal} sudah terdaftar sebelumnya.`,
+                        background: '#0a0e17',
+                        color: '#f0fdf4',
+                        confirmButtonColor: '#06b6d4'
+                    });
+                    return;
+                }
+
+                const newStudentRef = ref(rtdb, `siswa/S_${nisVal}`);
+                await set(newStudentRef, {
+                    nis: nisVal, nama: namaVal, kelas: kelasVal, uid: "", dibuat: Date.now()
+                });
+                await set(ref(rtdb, `index_nis/${nisVal}`), `S_${nisVal}`);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Murid berhasil ditambahkan.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                document.getElementById('form-bk-tambah').reset();
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Gagal menyimpan data ke database.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+            }
+        };
+
+        window.editSiswa = (id, nis, nama, kelas) => {
+            document.getElementById('edit-old-id').value = id;
+            document.getElementById('edit-old-nis').value = nis;
+            document.getElementById('edit-nis').value = nis;
+            document.getElementById('edit-kelas').value = kelas;
+            document.getElementById('edit-nama').value = nama;
+            document.getElementById('modal-edit').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-cancel-edit').onclick = () => {
+            document.getElementById('modal-edit').classList.add('hidden');
+        };
+
+        document.getElementById('form-bk-edit').onsubmit = async (e) => {
+            e.preventDefault();
+            const targetId = document.getElementById('edit-old-id').value;
+            const oldNis   = document.getElementById('edit-old-nis').value;
+            const newNis   = document.getElementById('edit-nis').value.trim();
+            const newNama  = document.getElementById('edit-nama').value.trim().toUpperCase();
+            const newKelas = document.getElementById('edit-kelas').value.trim().toUpperCase();
+
+            try {
+                if (oldNis !== newNis) {
+                    const checkNis = await get(ref(rtdb, `index_nis/${newNis}`));
+                    if (checkNis.exists()) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'NIS Sudah Digunakan',
+                            text: `NIS ${newNis} sudah digunakan siswa lain.`,
+                            background: '#0a0e17',
+                            color: '#f0fdf4',
+                            confirmButtonColor: '#06b6d4'
+                        });
+                        return;
+                    }
+                    await remove(ref(rtdb, `index_nis/${oldNis}`));
+                    await set(ref(rtdb, `index_nis/${newNis}`), targetId);
+                }
+
+                const snap = await get(ref(rtdb, `siswa/${targetId}`));
+                const existingData = snap.exists() ? snap.val() : {};
+
+                await set(ref(rtdb, `siswa/${targetId}`), {
+                    ...existingData,
+                    nis: newNis, nama: newNama, kelas: newKelas
+                });
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Diperbarui',
+                    text: 'Data siswa berhasil diperbarui.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                document.getElementById('modal-edit').classList.add('hidden');
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Gagal memperbarui data siswa.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+            }
+        };
+
+        window.hapusSiswa = async (id, nis) => {
+            const result = await Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: `Yakin ingin menghapus data siswa dengan NIS ${nis}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                background: '#0a0e17',
+                color: '#f0fdf4',
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#475569',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                await remove(ref(rtdb, `siswa/${id}`));
+                await remove(ref(rtdb, `index_nis/${nis}`));
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Dihapus',
+                    text: 'Data siswa berhasil dihapus.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Gagal menghapus data siswa.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+            }
+        };
+
+        document.getElementById('form-siswa').onsubmit = async (e) => {
+            e.preventDefault();
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            const originalHtml = btnSubmit.innerHTML;
+
+            const selectedId = hiddenInputSiswa.value;
+            const uidVal     = document.getElementById('uid').value.trim().toUpperCase();
+
+            if (!selectedId || !uidVal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Data Belum Lengkap',
+                    text: 'Pilih siswa dari data BK dan tempelkan kartu terlebih dahulu.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Menyimpan...';
+
+            try {
+                const siswaSnap = await get(ref(rtdb, `siswa/${selectedId}`));
+                if (!siswaSnap.exists()) throw new Error('Data siswa tidak ditemukan.');
+
+                const d = siswaSnap.val();
+
+                await set(ref(rtdb, `siswa/${selectedId}`), {
+                    ...d,
+                    uid: uidVal
+                });
+                await remove(ref(rtdb, `pending/${uidVal}`));
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Kartu Berhasil Ditautkan!',
+                    text: 'Kartu RFID berhasil dihubungkan ke siswa.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                btnSubmit.innerHTML = '<i class="ri-check-line"></i> Berhasil Dikaitkan';
+                setTimeout(() => {
+                    btnSubmit.innerHTML = originalHtml;
+                    btnSubmit.disabled = false;
+                    document.getElementById('form-siswa').reset();
+                    hiddenInputSiswa.value = '';
+                    customSelectLabel.textContent = '-- Pilih Siswa dari Data BK --';
+                    customSelectLabel.style.color = 'var(--faint)';
+                    lastScanShown = null;
+                    setScanStatus('idle');
+                }, 1400);
+                return;
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Gagal mengaitkan kartu. Periksa koneksi internet lalu coba lagi.',
+                    background: '#0a0e17',
+                    color: '#f0fdf4',
+                    confirmButtonColor: '#06b6d4'
+                });
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalHtml;
+        };
+
+        // --- Fitur Ekspor Excel ---
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const dateStr = todayLocal();
+            const titleText = `REKAP KEHADIRAN SISWA - ${dateStr}`;
+
+            const excelData = [
+                [titleText],
+                ["Dicetak pada:", new Date().toLocaleString('id-ID')],
+                [],
+                ["No", "Nama Siswa", "NIS", "Kelas", "Status Kehadiran", "Jam Masuk"]
+            ];
+
+            let no = 1;
+            studentsCache.forEach(m => {
+                const tap = tapHariIni(m.id);
+                const jamHadir = tap ? String(tap.jam || '').slice(0, 5) : "";
+                const statusStr = jamHadir ? "Hadir" : "Belum Hadir";
+
+                excelData.push([
+                    no++,
+                    String(m.nama || '').toUpperCase(),
+                    String(m.nis || ''),
+                    String(m.kelas || '').toUpperCase(),
+                    statusStr,
+                    jamHadir || "-"
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+            const colWidths = [
+                { wch: 5 },
+                { wch: 30 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 18 },
+                { wch: 12 }
+            ];
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rekap Kehadiran");
+            XLSX.writeFile(wb, `Rekap_Kehadiran_${dateStr}.xlsx`);
+        });
+
+        function renderOrtuAttendance() {
+            if (currentUserRole !== 'ortu' || !currentUid) return;
+
+            const ikon  = document.getElementById('ortu-ikon');
+            const teks  = document.getElementById('ortu-status-teks');
+            const sub   = document.getElementById('ortu-status-sub');
+            const waktu = document.getElementById('ortu-waktu');
+            const jamEl   = document.getElementById('ortu-jam');
+            const strip7  = document.getElementById('ortu-hadir7');
+
+            const tap = tapHariIni(currentUid);
+            let hadir7 = 0;
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const rec = (absensiCache[key] || {})[currentUid];
+                if (rec && rec.jam) hadir7++;
+            }
+
+            if (tap && tap.jam) {
+                const jam = String(tap.jam).slice(0, 5);
+                ikon.innerHTML = '<div class="st-icon in"><i class="ri-check-double-line"></i></div>';
+                teks.textContent = 'Sudah Hadir';
+                teks.className = 'st-title ok';
+                sub.textContent = `Ananda ${currentNama} tercatat hadir di sekolah hari ini.`;
+                waktu.innerHTML = `<b>${jam}</b><span>Jam masuk</span>`;
+                jamEl.textContent = jam;
+            } else {
+                ikon.innerHTML = '<div class="st-icon out"><i class="ri-radar-line"></i></div>';
+                teks.textContent = 'Belum Hadir';
+                teks.className = 'st-title';
+                sub.textContent = `Ananda ${currentNama} belum tercatat hadir hari ini. Halaman ini terbarui otomatis.`;
+                waktu.innerHTML = '<b>&ndash;</b><span>Belum ada catatan</span>';
+                jamEl.textContent = '\u2013';
+            }
+            strip7.textContent = `${hadir7}/7`;
+
+            const list = document.getElementById('tabel-riwayat');
+            let rows = '';
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const rec = (absensiCache[key] || {})[currentUid];
+                const hadir = rec && rec.jam;
+
+                const hari  = d.toLocaleDateString('id-ID', { weekday: 'long' });
+                const tgl   = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                const label = i === 0 ? `${hari} (hari ini)` : hari;
+
+                rows += `
+                    <div class="rw-row">
+                        <div class="rw-day">
+                            <b>${label}</b>
+                            <span>${tgl}</span>
+                        </div>
+                        <span class="rw-jam">${hadir ? String(rec.jam).slice(0, 5) : '&ndash;'}</span>
+                        <span class="rw-badge ${hadir ? 'in' : 'out'}">${hadir ? 'Hadir' : 'Absen'}</span>
+                    </div>
+                `;
+            }
+            list.innerHTML = rows;
+
+            document.getElementById('riwayat-summary').innerHTML =
+                `<b>${hadir7}</b> dari 7 hari hadir`;
+        }
+    </script>
+</body>
+</html>
